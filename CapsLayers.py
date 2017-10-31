@@ -12,36 +12,33 @@ class PrimaryCap(nn.Block):
     def __init__(self,dim_vector,n_channels,kernel_size,padding,strides=(1,1),**kwargs):
         super(PrimaryCap, self).__init__(**kwargs)
         # self.squash = squash()
-        self.net = nn.Sequential()
-        self.output = []
-        self.outputs = []
-        self.s_squared_norm = 0
-        self.scale = 0
+        # self.net = nn.Sequential()
+
         self.dim_vector = dim_vector
         self.n_channels=n_channels
-        # self.dense = nn.Dense(64)
-        with self.name_scope():
-            self.net.add(nn.Conv2D(channels=dim_vector,kernel_size=kernel_size,strides=strides,padding=padding,activation="relu"))
-
+        self.conv_vector = nn.Conv2D(channels=dim_vector, kernel_size=kernel_size,strides=strides,padding=padding,activation='relu')
+        # with self.name_scope():
+        #     self.net.add(nn.Conv2D(channels=dim_vector,kernel_size=kernel_size,strides=strides,padding=padding,activation="relu"))
+        self.caps = [self.conv_vector for x in range(self.n_channels)]
 
     def forward(self, x):
-        # print('PrimaryCap inputs shape',x.shape)
-        outputs = []
-        for _ in range(self.n_channels):
-            self.output = self.net(x)
+        print('PrimaryCap inputs shape',x.shape)
+        print('len',len(self.caps))
 
-            outputs.append(nd.reshape(data=self.output,shape=(-1, self.dim_vector,self.output.shape[2] ** 2)))
-            # print(self.output.shape)
-            # print(self.outputs[-1].shape)
+        outputs = []
+        for i in range(self.n_channels):
+            output = self.caps[i](x)
+            # print('output',output)
+            outputs.append(nd.reshape(data=output,shape=(-1, self.dim_vector,output.shape[2] ** 2)))
+   
+        # print('PrimaryCap outputs',outputs.shape)
         
         outputs = nd.concatenate(outputs, axis=2)
         
         # squash
-        # print('outputs',self.outputs.shape)
-        self.s_squared_norm = nd.sum(nd.square(outputs), -1, keepdims=True)
-        self.scale = self.s_squared_norm / (1 + self.s_squared_norm) / nd.sqrt(self.s_squared_norm)
+        print('concatenate outputs',outputs.shape)
 
-        return self.scale * outputs
+        return squash(outputs)
 
 
 class CapsuleLayer(nn.Block):
@@ -57,16 +54,12 @@ class CapsuleLayer(nn.Block):
 
         self.W  = self.params.get(
                 'weight',shape=(self.batch_size,self.input_dim_vector, self.dim_vector))
-        self.bias = self.params.get('bias', shape=(self.input_num_capsule, self.num_capsule))
-        self.Weight = Parameter("Wij", shape=(self.input_num_capsule, self.num_capsule, self.input_dim_vector, self.dim_vector))
-
-    def squash(self,vectors):
-        s_squared_norm = nd.sum(nd.square(vectors), -1, keepdims=True)
-        scale = s_squared_norm / (1 + s_squared_norm) / nd.sqrt(s_squared_norm)
-        return scale * vectors
+        self.bias = nd.zeros(shape=(self.input_num_capsule, self.num_capsule))
+        # self.bias = self.params.get('bias', shape=(self.input_num_capsule, self.num_capsule))
+        # self.Weight = Parameter("Wij", shape=(self.input_num_capsule, self.num_capsule, self.input_dim_vector, self.dim_vector))
 
     def forward(self, x):
-        # print('CapsuleLayer inputs shape',x.shape)
+        print('CapsuleLayer inputs shape',x.shape)
         # print('W',self.W.shape)
         # print('bias',self.bias.shape)
         # (2, 8, 1152)
@@ -78,15 +71,21 @@ class CapsuleLayer(nn.Block):
         inputs_hat = nd.tile(x, [1, 1, self.num_capsule, 1, 1])
 
         for _ in range(self.num_routing):
-            c = nd.softmax(self.bias.data())
+            c = nd.softmax(self.bias)
 
             c_expand = nd.expand_dims(nd.expand_dims(nd.expand_dims(c, 2), 2), 0)
-            # print(c_expand.shape)
+
+            print('c_expand',c_expand.shape)
+            print('inputs_hat',inputs_hat.shape)
+
+
             outputs = nd.sum(c_expand * inputs_hat, [1, 3], keepdims=True)
-            # print('outputs',c_expand.shape)
-            outputs = self.squash(outputs)
+            print('outputs',c_expand.shape)
+            outputs = squash(outputs)
+            print('squash outputs',outputs.shape)
         
-            self.bias.set_data(self.bias.data() + nd.sum(inputs_hat * outputs, [0, -2, -1]))
+            # self.bias.set_data(self.bias+ nd.sum(inputs_hat * outputs, [0, -2, -1]))
+            self.bias = self.bias + nd.sum(inputs_hat * outputs, [0, -2, -1])
             # nd.update(self.bias, )
         outputs = nd.reshape(outputs, (self.batch_size, self.num_capsule, self.dim_vector))
         outputs = nd.transpose(outputs, axes=(0,2,1))

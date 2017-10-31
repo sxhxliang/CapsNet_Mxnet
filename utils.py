@@ -55,6 +55,7 @@ def SGD(params, lr):
         param[:] = param - lr * param.grad
 
 def accuracy(output, label):
+    print('accuracy',output, label)
     return nd.mean(output.argmax(axis=1)==label).asscalar()
 
 def _get_batch(batch, ctx):
@@ -67,15 +68,6 @@ def _get_batch(batch, ctx):
     return data.as_in_context(ctx), label.as_in_context(ctx)
 
 
-def get_test_data(data_iterator, ctx):
-
-    if isinstance(data_iterator, mx.io.MXDataIter):
-        data_iterator.reset()
-    for i, batch in enumerate(data_iterator):
-        data, label = _get_batch(batch, ctx)
-    return data.as_in_context(ctx), label.as_in_context(ctx)
-
-
 
 def evaluate_accuracy(data_iterator, net, ctx=mx.cpu()):
     acc = 0.
@@ -85,6 +77,7 @@ def evaluate_accuracy(data_iterator, net, ctx=mx.cpu()):
         data, label = _get_batch(batch, ctx)
         output = net(data)
         acc += accuracy(output, label)
+
     return acc / (i+1)
 
 def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batches=None):
@@ -92,19 +85,24 @@ def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batc
     for epoch in range(num_epochs):
         train_loss = 0.
         train_acc = 0.
-        if isinstance(train_data, mx.io.MXDataIter):
-            train_data.reset()
         for i, batch in enumerate(train_data):
-            data, label = _get_batch(batch, ctx)
+            data, label = batch
+            label = nd.one_hot(label,10)
+            # print('data, label',data, label)
             with autograd.record():
                 output = net(data)
+                print('output',output)
+
                 L = loss(output, label)
+
             L.backward()
 
             trainer.step(data.shape[0],ignore_stale_grad=True)
 
             train_loss += nd.mean(L).asscalar()
-        print('train_loss',train_loss)
+            print('nd.mean(L).asscalar()',nd.mean(L).asscalar())
+
+            
         #     train_acc += accuracy(output, label)
 
         #     n = i + 1
@@ -112,7 +110,7 @@ def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batc
         #         print("Batch %d. Loss: %f, Train acc %f" % (
         #             n, train_loss/n, train_acc/n
         #         ))
-
+        # # print('train_loss',train_loss)
         # test_acc = evaluate_accuracy(test_data, net, ctx)
         # print("Epoch %d. Loss: %f, Train acc %f, Test acc %f" % (
         #     epoch, train_loss/n, train_acc/n, test_acc
