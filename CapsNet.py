@@ -29,7 +29,7 @@ def CapsNet(batch_size, ctx):
     net.initialize(ctx=ctx, init=init.Xavier())
     return net
 
-def margin_loss(y_true, y_pred):
+def loss(y_pred,y_true):
     L = y_true * nd.square(nd.maximum(0., 0.9 - y_pred)) + \
         0.5 * (1 - y_true) * nd.square(nd.maximum(0., y_pred - 0.1))
 
@@ -44,16 +44,17 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', default=20, type=int)
     args = parser.parse_args()
     print(args)
-    ctx = mx.cpu()
+    ctx = utils.try_gpu()
+
     train_data, test_data = utils.load_data_mnist(batch_size=args.batch_size,resize=28)
     
-    # load data
-    data, label = utils._get_batch(train_data, ctx)
     
-    ctx = utils.try_gpu()
+    
     # define model
     net = CapsNet(batch_size=args.batch_size,ctx=ctx)
-    data = nd.random_normal(shape=(10,28,28))
+
+    # test forward
+    data = nd.random_normal(shape=(args.batch_size,28,28))
     print(net(data))
     
 
@@ -61,5 +62,5 @@ if __name__ == "__main__":
     trainer = gluon.Trainer(net.collect_params(),
                             'adam', {'learning_rate': 0.01})
 
-    # utils.train(train_data, test_data, net, loss,
-    #         trainer, ctx, num_epochs=args.epochs)
+    utils.train(train_data, test_data, net, loss,
+            trainer, ctx, num_epochs=args.epochs)

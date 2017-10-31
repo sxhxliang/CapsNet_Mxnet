@@ -3,22 +3,44 @@ from mxnet.gluon import nn
 
 
 # def squash(vectors):
-#     """
-#     The non-linear activation used in Capsule. It drives the length of a large vector to near 1 and small vector to 0
-#     :param vectors: some vectors to be squashed, N-dim tensor
-#     :return: a Tensor with same shape as input vectors
-#     """
 #     s_squared_norm = nd.sum(nd.square(vectors), -1, keepdims=True)
 #     scale = s_squared_norm / (1 + s_squared_norm) / nd.sqrt(s_squared_norm)
 #     return scale * vectors
 
+class PrimaryCap(nn.Block):
+    def __init__(self,dim_vector,n_channels,kernel_size,padding,strides=(1,1),**kwargs):
+        super(PrimaryCap, self).__init__(**kwargs)
+        # self.squash = squash()
+        self.net = nn.Sequential()
+        self.output = []
+        self.outputs = []
+        self.s_squared_norm = 0
+        self.scale = 0
+        self.dim_vector = dim_vector
+        self.n_channels=n_channels
 
-class Length(nn.Block):
-    def __init__(self, **kwargs):
-        super(Length, self).__init__(**kwargs)
+        with self.name_scope():
+            self.conv = nn.Conv2D(channels=n_channels,kernel_size=kernel_size,strides=strides,padding=padding,activation="relu")
+            self.net.add(self.conv)
+
 
     def forward(self, x):
-        return nd.sqrt(nd.sum(nd.square(x), -1))
+        print('PrimaryCap inputs shape',nd.shape(x))
+        for _ in range(self.n_channels):
+            self.output = self.net(x)
+
+            self.outputs.append(nd.reshape(data=self.output,shape=(self.output.shape[1] ** 2, self.dim_vector)))
+            print(output.shape)
+            print(outputs[-1].shape)
+        
+        self.outputs = nd.concatenate(outputs, axis=1)
+        
+        # squash
+        self.s_squared_norm = nd.sum(nd.square(self.outputs), -1, keepdims=True)
+        self.scale = self.s_squared_norm / (1 + self.s_squared_norm) / nd.sqrt(self.s_squared_norm)
+
+        return self.scale * self.outputs
+
 
 class CapsuleLayer(nn.Block):
     def __init__(self,num_capsule,dim_vector, batch_size, num_routing=3,**kwargs):
@@ -38,6 +60,8 @@ class CapsuleLayer(nn.Block):
         self.bias = self.params.get('bias', shape=(self.input_num_capsule, self.num_capsule))
 
     def forward(self, x):
+
+        print('CapsuleLayer inputs shape',nd.shape(x))
         
         inputs_expand = nd.expand_dims(nd.expand_dims(x, 2), 2)
       
@@ -63,35 +87,10 @@ class CapsuleLayer(nn.Block):
         return nd.reshape(outputs, [self.batch_size, self.num_capsule, self.dim_vector])
 
 
-class PrimaryCap(nn.Block):
-    def __init__(self,dim_vector,n_channels,kernel_size,padding,strides=(1,1),**kwargs):
-        super(PrimaryCap, self).__init__(**kwargs)
-        # self.squash = squash()
-        self.net = nn.Sequential()
-        self.output = []
-        self.outputs = []
-        self.s_squared_norm = 0
-        self.scale = 0
-        self.dim_vector = dim_vector
-        self.n_channels=n_channels
-
-        with self.name_scope():
-            self.conv = nn.Conv2D(channels=n_channels,kernel_size=kernel_size,strides=strides,padding=padding,activation="relu")
-            self.net.add(self.conv)
-
+class Length(nn.Block):
+    def __init__(self, **kwargs):
+        super(Length, self).__init__(**kwargs)
 
     def forward(self, x):
-        for _ in range(self.n_channels):
-            self.output = self.net(x)
+        return nd.sqrt(nd.sum(nd.square(x), -1))
 
-            self.outputs.append(nd.reshape(data=self.output,shape=(self.output.shape[1] ** 2, self.dim_vector)))
-            print(output.shape)
-            print(outputs[-1].shape)
-        
-        self.outputs = nd.concatenate(outputs, axis=1)#¶(outputs)
-        
-        # squash
-        self.s_squared_norm = nd.sum(nd.square(self.outputs), -1, keepdims=True)
-        self.scale = self.s_squared_norm / (1 + self.s_squared_norm) / nd.sqrt(self.s_squared_norm)
-
-        return self.scale * self.outputs
