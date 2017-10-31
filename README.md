@@ -2,7 +2,7 @@
 
 A Mxnet implementation of CapsNet in Hinton's paper [Dynamic Routing Between Capsules](https://arxiv.org/abs/1710.09829)
 
-# CapsNet-Mxnet
+# CapsNet-Mxnet  Not yet completed
 
 ## Requirements
 - [Mxnet](https://github.com/apache/incubator-mxnet) 
