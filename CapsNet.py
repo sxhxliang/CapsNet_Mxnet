@@ -10,7 +10,7 @@ Result:
 import mxnet as mx
 from mxnet import init
 from mxnet import nd
-from mxnet.gluon import nn
+from mxnet.gluon import nn,Trainer
 
 from capsulelayers import CapsuleLayer, PrimaryCap, Length
 import utils
@@ -46,8 +46,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
 
-    ctx = utils.try_gpu()
-
+    # ctx = utils.try_gpu()
+    ctx = mx.cpu()
 
     train_data, test_data = utils.load_data_mnist(batch_size=args.batch_size,resize=28)
     
@@ -65,8 +65,7 @@ if __name__ == "__main__":
     if args.train:
         print('train.........')
         # loss = gluon.loss.SoftmaxCrossEntropyLoss()
-        trainer = gluon.Trainer(net.collect_params(),
-                                'adam', {'learning_rate': 0.01})
+        trainer = Trainer(net.collect_params(),'adam', {'learning_rate': 0.01})
 
         utils.train(train_data, test_data, net, loss,
                 trainer, ctx, num_epochs=args.epochs)
