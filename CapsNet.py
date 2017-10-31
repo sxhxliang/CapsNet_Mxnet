@@ -42,9 +42,12 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--batch_size', default=10, type=int)
     parser.add_argument('--epochs', default=20, type=int)
+    parser.add_argument('--train', default=False, type=bool)
     args = parser.parse_args()
     print(args)
+
     ctx = utils.try_gpu()
+
 
     train_data, test_data = utils.load_data_mnist(batch_size=args.batch_size,resize=28)
     
@@ -54,13 +57,16 @@ if __name__ == "__main__":
     net = CapsNet(batch_size=args.batch_size,ctx=ctx)
 
     # test forward
-    data = nd.random_normal(shape=(args.batch_size,28,28))
-    print(net(data))
+    print(net)
+
+    # data = nd.random_normal(shape=(args.batch_size,28,28))
+    # print(net(data))
     
+    if args.train:
+        print('train.........')
+        # loss = gluon.loss.SoftmaxCrossEntropyLoss()
+        trainer = gluon.Trainer(net.collect_params(),
+                                'adam', {'learning_rate': 0.01})
 
-    # loss = gluon.loss.SoftmaxCrossEntropyLoss()
-    trainer = gluon.Trainer(net.collect_params(),
-                            'adam', {'learning_rate': 0.01})
-
-    utils.train(train_data, test_data, net, loss,
-            trainer, ctx, num_epochs=args.epochs)
+        utils.train(train_data, test_data, net, loss,
+                trainer, ctx, num_epochs=args.epochs)
