@@ -12,9 +12,9 @@ def load_data_fashion_mnist(batch_size, resize=None):
             data = image.imresize(data, resize, resize)
         # change data from height x weight x channel to channel x height x weight
         return nd.transpose(data.astype('float32'), (2,0,1))/255, label.astype('float32')
-    mnist_train = gluon.data.vision.FashionMNIST(
+    mnist_train = gluon.data.vision.FashionMNIST(root='./data',
         train=True, transform=transform_mnist)
-    mnist_test = gluon.data.vision.FashionMNIST(
+    mnist_test = gluon.data.vision.FashionMNIST(root='./data',
         train=False, transform=transform_mnist)
     train_data = gluon.data.DataLoader(
         mnist_train, batch_size, shuffle=True)
