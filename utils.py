@@ -55,8 +55,8 @@ def SGD(params, lr):
         param[:] = param - lr * param.grad
 
 def accuracy(output, label):
-    print('accuracy',output, label)
-    return nd.mean(output.argmax(axis=1)==label).asscalar()
+    # print('accuracy',output, label)
+    return nd.mean(nd.argmax(output,axis=1)==label).asscalar()
 
 def _get_batch(batch, ctx):
     """return data and label on ctx"""
@@ -85,15 +85,16 @@ def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batc
     for epoch in range(num_epochs):
         train_loss = 0.
         train_acc = 0.
+        n = 0
         for i, batch in enumerate(train_data):
             data, label = batch
-            label = nd.one_hot(label,10)
+            one_hot_label = nd.one_hot(label,10)
             # print('data, label',data, label)
             with autograd.record():
                 output = net(data)
-                print('output',output)
+                # print('output',output)
 
-                L = loss(output, label)
+                L = loss(output, one_hot_label)
 
             L.backward()
 
@@ -103,15 +104,15 @@ def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batc
             print('nd.mean(L).asscalar()',nd.mean(L).asscalar())
 
             
-        #     train_acc += accuracy(output, label)
+            train_acc += accuracy(output, label)
 
-        #     n = i + 1
-        #     if print_batches and n % print_batches == 0:
-        #         print("Batch %d. Loss: %f, Train acc %f" % (
-        #             n, train_loss/n, train_acc/n
-        #         ))
-        # # print('train_loss',train_loss)
-        # test_acc = evaluate_accuracy(test_data, net, ctx)
-        # print("Epoch %d. Loss: %f, Train acc %f, Test acc %f" % (
-        #     epoch, train_loss/n, train_acc/n, test_acc
-        # ))
+            n = i + 1
+            if print_batches and n % print_batches == 0:
+                print("Batch %d. Loss: %f, Train acc %f" % (
+                    n, train_loss/n, train_acc/n
+                ))
+        # print('train_loss',train_loss)
+        test_acc = evaluate_accuracy(test_data, net, ctx)
+        print("Epoch %d. Loss: %f, Train acc %f, Test acc %f" % (
+            epoch, train_loss/n, train_acc/n, test_acc
+        ))

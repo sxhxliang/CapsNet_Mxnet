@@ -29,7 +29,10 @@ def CapsNet(batch_size, ctx):
     net.initialize(ctx=ctx, init=init.Xavier())
     return net
 
+
+
 def loss(y_pred,y_true):
+    
     L = y_true * nd.square(nd.maximum(0., 0.9 - y_pred)) + \
         0.5 * (1 - y_true) * nd.square(nd.maximum(0., y_pred - 0.1))
 

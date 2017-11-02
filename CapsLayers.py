@@ -1,10 +1,10 @@
 from mxnet import nd
 from mxnet.gluon import nn,Parameter
-# from mxnet import gluon
+from mxnet import init
 
 
-def squash(vectors):
-    s_squared_norm = nd.sum(nd.square(vectors), -1, keepdims=True)
+def squash(vectors,axis):
+    s_squared_norm = nd.sum(nd.square(vectors), axis, keepdims=True)
     scale = s_squared_norm / (1 + s_squared_norm) / nd.sqrt(s_squared_norm)
     return scale * vectors
 
@@ -22,13 +22,14 @@ class PrimaryCap(nn.Block):
         self.caps = [self.conv_vector for x in range(self.n_channels)]
 
     def forward(self, x):
-        print('PrimaryCap inputs shape',x.shape)
-        print('len',len(self.caps))
+        # print('PrimaryCap inputs shape',x.shape)
+        # print('len',len(self.caps))
 
         outputs = []
         for i in range(self.n_channels):
             output = self.caps[i](x)
             # print('output',output)
+            # outputs.append(output)
             outputs.append(nd.reshape(data=output,shape=(-1, self.dim_vector,output.shape[2] ** 2)))
    
         # print('PrimaryCap outputs',outputs.shape)
@@ -36,60 +37,63 @@ class PrimaryCap(nn.Block):
         outputs = nd.concatenate(outputs, axis=2)
         
         # squash
-        print('concatenate outputs',outputs.shape)
-
-        return squash(outputs)
+        v_primary = squash(nd.array(outputs),axis=1)
+        # print('concatenate outputs',v_primary.shape)
+        return v_primary
 
 
 class CapsuleLayer(nn.Block):
     def __init__(self,num_capsule,dim_vector, batch_size, num_routing=3,**kwargs):
         super(CapsuleLayer, self).__init__(**kwargs)
-        self.num_capsule = num_capsule
-        self.dim_vector = dim_vector
-        self.batch_size = batch_size
-        self.num_routing = num_routing
+        self.num_capsule = num_capsule #10
+        self.dim_vector = dim_vector #16
+        self.batch_size = batch_size 
+        self.num_routing = num_routing #3
 
-        self.input_num_capsule = 1152
+        self.input_num_capsule = 1152 
         self.input_dim_vector = 8
 
-        self.W  = self.params.get(
-                'weight',shape=(self.batch_size,self.input_dim_vector, self.dim_vector))
-        self.bias = nd.zeros(shape=(self.input_num_capsule, self.num_capsule))
-        # self.bias = self.params.get('bias', shape=(self.input_num_capsule, self.num_capsule))
-        # self.Weight = Parameter("Wij", shape=(self.input_num_capsule, self.num_capsule, self.input_dim_vector, self.dim_vector))
-
+        #  (1152,8,10,16)
+        self.W_ij  = self.params.get(
+            'weight',shape=(
+                self.batch_size,
+                self.input_dim_vector,
+                self.input_num_capsule,
+                self.num_capsule,
+                self.dim_vector),init=init.Normal(0.5)) 
+                #init.Xavier()
+      
+        self.bias = Parameter('fc_bias', shape=(batch_size,1,self.input_num_capsule,self.num_capsule,1), init=init.Zero())
+        self.bias.initialize()
+  
     def forward(self, x):
-        print('CapsuleLayer inputs shape',x.shape)
-        # print('W',self.W.shape)
-        # print('bias',self.bias.shape)
-        # (2, 8, 1152)
-        # inputs.shape=[batch_size, input_dim_vector,input_num_capsule]
-        # Expand dims to [batch_size, input_dim_vector, 1, 1, input_num_capsule]
-        x = nd.transpose(x, axes=(0,2,1))
-        x = nd.batch_dot(x, self.W.data())
-        x = nd.expand_dims(nd.expand_dims(x, 2), 2)
-        inputs_hat = nd.tile(x, [1, 1, self.num_capsule, 1, 1])
+        # print('CapsuleLayer inputs shape',x.shape)
+        self.bias.set_data(nd.stop_gradient(nd.softmax(self.bias.data(), axis=3)))
 
-        for _ in range(self.num_routing):
-            c = nd.softmax(self.bias)
+    
 
-            c_expand = nd.expand_dims(nd.expand_dims(nd.expand_dims(c, 2), 2), 0)
+        u = nd.expand_dims(nd.expand_dims(x, 3), 3)
+        # u = u.reshape(u,shape=(-1,8,6,6,32))
+        u_ = nd.sum(u*self.W_ij.data(),axis=1,keepdims=True)
+        s = nd.sum(u_*self.bias.data(),axis=2,keepdims=True)
+        v = squash(s,axis=-1)
 
-            print('c_expand',c_expand.shape)
-            print('inputs_hat',inputs_hat.shape)
+        for i in range(self.num_routing):
 
+            self.bias.set_data(self.bias.data() + nd.sum(u_*v,axis=-1,keepdims=True))
 
-            outputs = nd.sum(c_expand * inputs_hat, [1, 3], keepdims=True)
-            print('outputs',c_expand.shape)
-            outputs = squash(outputs)
-            print('squash outputs',outputs.shape)
-        
-            # self.bias.set_data(self.bias+ nd.sum(inputs_hat * outputs, [0, -2, -1]))
-            self.bias = self.bias + nd.sum(inputs_hat * outputs, [0, -2, -1])
-            # nd.update(self.bias, )
-        outputs = nd.reshape(outputs, (self.batch_size, self.num_capsule, self.dim_vector))
-        outputs = nd.transpose(outputs, axes=(0,2,1))
-        return outputs
+            c =  nd.softmax(self.bias.data(), axis=3)
+            s =  nd.sum(u_ * c, axis=2, keepdims=True)
+            v = squash(s,axis=-1)
+        # print(x.shape)
+        # print(u.shape)
+        # print(u_.shape)
+        # print(s.shape)
+        # print(v.shape)
+        # print(self.bias.data().shape)
+        # print(v.shape)
+ 
+        return nd.reshape(v,shape=(-1,self.num_capsule, self.dim_vector))
 
 
 class Length(nn.Block):
@@ -97,5 +101,7 @@ class Length(nn.Block):
         super(Length, self).__init__(**kwargs)
 
     def forward(self, x):
-        return nd.sqrt(nd.sum(nd.square(x), 1))
+        x = nd.sqrt(nd.sum(nd.square(x), 2))
+        # print('Length output shape',x.shape)
+        return x
 
