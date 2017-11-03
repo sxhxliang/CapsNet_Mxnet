@@ -9,7 +9,7 @@ def squash(vectors,axis):
     return scale * vectors
 
 class PrimaryCap(nn.Block):
-    def __init__(self,dim_vector,n_channels,kernel_size,padding,strides=(1,1),**kwargs):
+    def __init__(self,dim_vector,n_channels,kernel_size,padding,context,strides=(1,1),**kwargs):
         super(PrimaryCap, self).__init__(**kwargs)
         # self.squash = squash()
         # self.net = nn.Sequential()
@@ -37,13 +37,13 @@ class PrimaryCap(nn.Block):
         outputs = nd.concatenate(outputs, axis=2)
         
         # squash
-        v_primary = squash(nd.array(outputs),axis=1)
+        v_primary = squash(nd.array(outputs,ctx=x.context),axis=1)
         # print('concatenate outputs',v_primary.shape)
         return v_primary
 
 
 class CapsuleLayer(nn.Block):
-    def __init__(self,num_capsule,dim_vector, batch_size, num_routing=3,**kwargs):
+    def __init__(self,num_capsule,dim_vector, batch_size,context,num_routing=3,**kwargs):
         super(CapsuleLayer, self).__init__(**kwargs)
         self.num_capsule = num_capsule #10
         self.dim_vector = dim_vector #16
@@ -64,7 +64,7 @@ class CapsuleLayer(nn.Block):
                 #init.Xavier()
       
         self.bias = Parameter('fc_bias', shape=(batch_size,1,self.input_num_capsule,self.num_capsule,1), init=init.Zero())
-        self.bias.initialize()
+        self.bias.initialize(ctx=context)
   
     def forward(self, x):
         # print('CapsuleLayer inputs shape',x.shape)

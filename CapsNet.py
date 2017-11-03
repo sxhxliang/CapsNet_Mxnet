@@ -22,8 +22,8 @@ def CapsNet(batch_size, ctx):
     net = nn.Sequential()
     with net.name_scope():
         net.add(nn.Conv2D(channels=256, kernel_size=9, strides=1, padding=(0,0), activation='relu'))
-        net.add(PrimaryCap(dim_vector=8, n_channels=32, kernel_size=9, strides=2,padding=(0,0)))
-        net.add(CapsuleLayer(num_capsule=10, dim_vector=16, batch_size=batch_size))
+        net.add(PrimaryCap(dim_vector=8, n_channels=32, kernel_size=9, strides=2,context=ctx,padding=(0,0)))
+        net.add(CapsuleLayer(num_capsule=10, dim_vector=16, context=ctx, batch_size=batch_size))
         net.add(Length())
 
     net.initialize(ctx=ctx, init=init.Xavier())
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     # setting the hyper parameters
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', default=2, type=int)
+    parser.add_argument('--batch_size', default=32, type=int)
     parser.add_argument('--epochs', default=20, type=int)
     parser.add_argument('--train', default=False, type=bool)
     args = parser.parse_args()
