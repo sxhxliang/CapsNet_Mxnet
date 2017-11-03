@@ -49,8 +49,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
     print(args)
 
-    # ctx = utils.try_gpu()
-    ctx = mx.cpu()
+    ctx = utils.try_gpu()
+    # ctx = mx.cpu()
 
     train_data, test_data = utils.load_data_mnist(batch_size=args.batch_size,resize=28)
     
