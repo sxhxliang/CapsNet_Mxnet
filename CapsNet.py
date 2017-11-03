@@ -32,7 +32,9 @@ def CapsNet(batch_size, ctx):
 
 
 def loss(y_pred,y_true):
-    
+    if len(y_true.shape) != 2 :
+        y_true = nd.one_hot(y_true,10)
+
     L = y_true * nd.square(nd.maximum(0., 0.9 - y_pred)) + \
         0.5 * (1 - y_true) * nd.square(nd.maximum(0., y_pred - 0.1))
 

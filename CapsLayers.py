@@ -25,19 +25,25 @@ class PrimaryCap(nn.Block):
         # print('PrimaryCap inputs shape',x.shape)
         # print('len',len(self.caps))
 
-        outputs = []
+        # outputs = []
+        # global out
+
         for i in range(self.n_channels):
             output = self.caps[i](x)
             # print('output',output)
             # outputs.append(output)
-            outputs.append(nd.reshape(data=output,shape=(-1, self.dim_vector,output.shape[2] ** 2)))
+            if i == 0:
+                out = nd.concat(nd.reshape(data=output,shape=(-1, self.dim_vector,output.shape[2] ** 2)),dim=2)
+            else:
+
+                out = nd.concat(out,nd.reshape(data=output,shape=(-1, self.dim_vector,output.shape[2] ** 2)),dim=2)
    
-        # print('PrimaryCap outputs',outputs.shape)
+        # print('PrimaryCap outputs',out.shape)
         
-        outputs = nd.concatenate(outputs, axis=2)
+        # outputs = nd.concatenate(outputs, axis=2)
         
         # squash
-        v_primary = squash(nd.array(outputs,ctx=x.context),axis=1)
+        v_primary = squash(out,axis=1)
         # print('concatenate outputs',v_primary.shape)
         return v_primary
 
@@ -62,27 +68,33 @@ class CapsuleLayer(nn.Block):
                 self.num_capsule,
                 self.dim_vector),init=init.Normal(0.5)) 
                 #init.Xavier()
-      
-        self.bias = Parameter('fc_bias', shape=(batch_size,1,self.input_num_capsule,self.num_capsule,1), init=init.Zero())
-        self.bias.initialize(ctx=context)
+        # self.bias  = self.params.get(
+            # 'bias',shape=(batch_size,1,self.input_num_capsule,self.num_capsule,1),init=init.Zero()) 
+        
+        # self.bias = Parameter('bias', shape=(batch_size,1,self.input_num_capsule,self.num_capsule,1), init=init.Zero())
+        self.bias = nd.zeros(shape=(batch_size,1,self.input_num_capsule,self.num_capsule,1),ctx=context)
+        # self.bias.initialize(ctx=context)
+        # nd.stop_gradient(self.bias.data())
   
     def forward(self, x):
         # print('CapsuleLayer inputs shape',x.shape)
-        self.bias.set_data(nd.stop_gradient(nd.softmax(self.bias.data(), axis=3)))
+        # self.bias.set_data(nd.stop_gradient(nd.softmax(self.bias.data(), axis=3)))
+        # nd.stop_gradient(self.bias.set_data())
+        self.bias = nd.zeros(shape=(self.batch_size,1,self.input_num_capsule,self.num_capsule,1),ctx=x.context)
+        self.bias = nd.softmax(self.bias, axis=3)
 
-    
 
         u = nd.expand_dims(nd.expand_dims(x, 3), 3)
         # u = u.reshape(u,shape=(-1,8,6,6,32))
         u_ = nd.sum(u*self.W_ij.data(),axis=1,keepdims=True)
-        s = nd.sum(u_*self.bias.data(),axis=2,keepdims=True)
+        s = nd.sum(u_*self.bias,axis=2,keepdims=True)
         v = squash(s,axis=-1)
 
         for i in range(self.num_routing):
 
-            self.bias.set_data(self.bias.data() + nd.sum(u_*v,axis=-1,keepdims=True))
+            self.bias = self.bias + nd.sum(u_*v,axis=-1,keepdims=True)
 
-            c =  nd.softmax(self.bias.data(), axis=3)
+            c =  nd.softmax(self.bias, axis=3)
             s =  nd.sum(u_ * c, axis=2, keepdims=True)
             v = squash(s,axis=-1)
         # print(x.shape)

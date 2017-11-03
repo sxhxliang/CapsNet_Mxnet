@@ -8,13 +8,13 @@ import utils
 
 net = nn.Sequential()
 batch_size =2
-
+ctx = mx.cpu()
 net.add(nn.Conv2D(channels=256, kernel_size=9, strides=1, padding=(0,0), activation='relu'))
-net.add(PrimaryCap(dim_vector=8, n_channels=32, kernel_size=9, strides=2,padding=(0,0)))
-net.add(CapsuleLayer(num_capsule=10, dim_vector=16, batch_size=batch_size))
+net.add(PrimaryCap(dim_vector=8, n_channels=32, kernel_size=9, strides=2,context=ctx,padding=(0,0)))
+net.add(CapsuleLayer(num_capsule=10, dim_vector=16,context=ctx, batch_size=batch_size))
 net.add(Length())
 net.initialize()
-ctx = mx.cpu()
+
 
 
 
@@ -26,8 +26,9 @@ ctx = mx.cpu()
 # for data, label in train_data:
     # break
 data = nd.random_normal(shape=(2,1,28,28))
-output = net(data)
-print('output',output)
+with autograd.record():
+	output = net(data)
+	print('output',output)
 
 
        
