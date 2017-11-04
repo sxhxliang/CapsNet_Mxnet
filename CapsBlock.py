@@ -5,7 +5,7 @@ from mxnet.gluon import nn
 
 
 class CapsBlock(nn.Block):
-    def __init__(self, dim_vector,n_channels,kernel_size,padding,strides=(1,1), **kwargs):
+    def __init__(self, dim_vector,n_channels,kernel_size,padding,context,strides=(1,1), **kwargs):
         super(CapsBlock, self).__init__(**kwargs)
         self.conv_vector1 = nn.Conv2D(channels=dim_vector, kernel_size=kernel_size,strides=strides,padding=padding,activation='relu')
         self.conv_vector2 = nn.Conv2D(channels=dim_vector, kernel_size=kernel_size,strides=strides,padding=padding,activation='relu')
@@ -89,7 +89,7 @@ class CapsBlock(nn.Block):
 
         conv31 = self.conv_vector31(x)
         conv32 = self.conv_vector32(x)
-        out = nd.concat(conv1, conv2, conv3, conv4,conv5,conv6,conv7,conv8,conv9,conv10,conv11,conv12,conv13,conv14,conv15,conv16,conv17,conv18,conv19,conv20,conv21,conv22,conv23,conv24,conv25,conv26,conv27,conv28,conv29,conv30,conv31,conv32,dim=3)
+        out = nd.concat(conv1, conv2, conv3, conv4,conv5,conv6,conv7,conv8,conv9,conv10,conv11,conv12,conv13,conv14,conv15,conv16,conv17,conv18,conv19,conv20,conv21,conv22,conv23,conv24,conv25,conv26,conv27,conv28,conv29,conv30,conv31,conv32,dim=1)
 
        	print(out.shape)
         return out
