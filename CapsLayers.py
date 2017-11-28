@@ -68,6 +68,7 @@ class DigitCaps(nn.Block):
         self.batch_size = 1 
         self.input_num_capsule = 1152
         self.input_dim_vector = 8
+        self.context = context
 
         #  (1, 1152, 10, 8, 16)
         self.W_ij  = self.params.get(
@@ -125,7 +126,7 @@ class DigitCaps(nn.Block):
         
         # (cfg.batch_size, input.shape[1].value, self.num_outputs, 1, 1)
         # 
-        b_IJ = nd.zeros((self.batch_size, self.input_num_capsule,self.num_capsule,1,1))
+        b_IJ = nd.zeros((self.batch_size, self.input_num_capsule,self.num_capsule,1,1),ctx=self.context)
 
         assert b_IJ.shape == ((self.batch_size,1152,10,1,1))
         
@@ -144,7 +145,9 @@ class DigitCaps(nn.Block):
             assert v_J.shape == (self.batch_size, 1, 10, 16, 1)
 
             v_J_tiled = v_J.tile(reps=[1, 1152, 1, 1, 1])
+
             if self.iter_routing > 1:
+
                 u_hat_stopped = u_hat_stopped.reshape(shape=(-1,self.dim_vector,1))
                 v_J_tiled = v_J_tiled.reshape(shape=(-1,self.dim_vector,1))
 
