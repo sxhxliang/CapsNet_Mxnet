@@ -3,6 +3,7 @@ from mxnet import autograd
 from mxnet import nd
 from mxnet import image
 import mxnet as mx
+from tqdm import tqdm
 
 def load_data_fashion_mnist(batch_size, resize=None):
     """download the fashion mnist dataest and then load into memory"""
@@ -86,8 +87,9 @@ def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batc
         train_loss = 0.
         train_acc = 0.
         n = 0
-        for i, batch in enumerate(train_data):
-            data, label = batch
+        for i, (data, label) in tqdm(enumerate(train_data), total=len(train_data), ncols=70, leave=False, unit='b'):
+        # for i, batch in enumerate(train_data):
+            # data, label = batch
             one_hot_label = nd.one_hot(label,10)
 
             label = label.as_in_context(ctx)
