@@ -101,8 +101,9 @@ def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batc
             trainer.step(data.shape[0],ignore_stale_grad=True)
 
             train_loss += nd.mean(L).asscalar()
-            print('nd.mean(L).asscalar()',nd.mean(L).asscalar())
+            # print('nd.mean(L).asscalar()',nd.mean(L).asscalar())
 
+            # print('output',output)
             
             train_acc += accuracy(output, label)
 

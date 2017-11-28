@@ -3,16 +3,17 @@ from mxnet import init
 from mxnet import nd
 from mxnet import autograd
 from mxnet.gluon import nn,Trainer,loss
-from CapsLayers import CapsuleLayer, PrimaryCap, Length
+from CapsLayers import DigitCaps, PrimaryConv, Length
 import utils
 
 net = nn.Sequential()
 batch_size =2
 
 net.add(nn.Conv2D(channels=256, kernel_size=9, strides=1, padding=(0,0), activation='relu'))
-net.add(PrimaryCap(dim_vector=8, n_channels=32, kernel_size=9, strides=2,padding=(0,0)))
-net.add(CapsuleLayer(num_capsule=10, dim_vector=16, batch_size=batch_size))
+net.add(PrimaryConv(dim_vector=8, n_channels=32, kernel_size=9, strides=2,padding=(0,0)))
+net.add(DigitCaps(num_capsule=10, dim_vector=16))
 net.add(Length())
+
 net.initialize()
 ctx = mx.cpu()
 

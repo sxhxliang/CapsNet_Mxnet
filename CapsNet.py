@@ -11,8 +11,7 @@ import mxnet as mx
 from mxnet import init
 from mxnet import nd
 from mxnet.gluon import nn,Trainer
-
-from CapsLayers import CapsuleLayer, PrimaryCap, Length
+from CapsLayers import DigitCaps, PrimaryConv, Length
 import utils
 
 
@@ -21,9 +20,10 @@ def CapsNet(batch_size, ctx):
 
     net = nn.Sequential()
     with net.name_scope():
+
         net.add(nn.Conv2D(channels=256, kernel_size=9, strides=1, padding=(0,0), activation='relu'))
-        net.add(PrimaryCap(dim_vector=8, n_channels=32, kernel_size=9, strides=2,context=ctx,padding=(0,0)))
-        net.add(CapsuleLayer(num_capsule=10, dim_vector=16, context=ctx, batch_size=batch_size))
+        net.add(PrimaryConv(dim_vector=8, n_channels=32, kernel_size=9, strides=2,padding=(0,0)))
+        net.add(DigitCaps(num_capsule=10, dim_vector=16))
         net.add(Length())
 
     net.initialize(ctx=ctx, init=init.Xavier())
