@@ -79,7 +79,8 @@ class DigitCaps(nn.Block):
                 self.input_dim_vector,
                 self.dim_vector),init=init.Normal(0.5)) 
                 #init.Xavier()
-            
+        self.W_ij.initialize(ctx=self.context)
+        
     def squash(self,vectors,axis):
         epsilon = 1e-9
         vectors_l2norm = (vectors**2).sum(axis=axis,keepdims=True)#.expand_dims(axis=axis)
