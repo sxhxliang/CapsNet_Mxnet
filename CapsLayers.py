@@ -17,7 +17,7 @@ class PrimaryConv(nn.Block):
         self.n_channels=n_channels
         self.conv_vector = nn.Conv2D(channels=dim_vector, kernel_size=kernel_size,strides=strides,padding=padding,activation='relu')
        
-        self.caps = [self.conv_vector for x in range(self.n_channels)]
+        # self.caps = [self.conv_vector for x in range(self.n_channels)]
 
         self.batch_size = 0
 
@@ -46,13 +46,13 @@ class PrimaryConv(nn.Block):
 
         self.batch_size = x.shape[0]
         
-        conv_list = [ self.caps[i](x) for i in range(self.n_channels)]
+        conv_list = [ self.conv_vector(x) for i in range(self.n_channels)]
         
         outputs = self.concat_outputs(conv_list,axis=2)
-        assert outputs.shape == (self.batch_size,8,1152)
+        assert outputs.shape == (self.batch_size, 8, 1152)
 
         v_primary = self.squash(outputs,axis=1)
-        assert outputs.shape == (self.batch_size,8,1152)
+        assert outputs.shape == (self.batch_size, 8, 1152)
 
         return outputs
 
@@ -77,10 +77,21 @@ class DigitCaps(nn.Block):
                 self.input_num_capsule,
                 self.num_capsule,
                 self.input_dim_vector,
-                self.dim_vector),init=init.Normal(0.5)) 
+                self.dim_vector
+                )) 
                 #init.Xavier()
-        self.W_ij.initialize(ctx=self.context)
-        
+                #
+        # self.Wij = nd.random_normal(
+        #     shape=(
+        #         1,
+        #         self.input_num_capsule,
+        #         self.num_capsule,
+        #         self.input_dim_vector,
+        #         self.dim_vector
+        #         ), scale=.01)
+        # self.Wij.attach_grad()
+        # self.W_ij.initialize(ctx=self.context)
+
     def squash(self,vectors,axis):
         epsilon = 1e-9
         vectors_l2norm = (vectors**2).sum(axis=axis,keepdims=True)#.expand_dims(axis=axis)
@@ -125,8 +136,6 @@ class DigitCaps(nn.Block):
         assert u_hat.shape == (self.batch_size, 1152, 10, 16, 1)
 
         
-        # (cfg.batch_size, input.shape[1].value, self.num_outputs, 1, 1)
-        # 
         b_IJ = nd.zeros((self.batch_size, self.input_num_capsule,self.num_capsule,1,1),ctx=self.context)
 
         assert b_IJ.shape == ((self.batch_size,1152,10,1,1))
@@ -159,8 +168,8 @@ class DigitCaps(nn.Block):
                 
                 b_IJ = nd.stop_gradient(b_IJ+u_produce_v, name ="update_b_IJ" )
 
-
-        assert v_J.shape == (self.batch_size,1,self.num_capsule,self.dim_vector,1)#nx1x10x16x1
+        #(batch_size,1,10,16,1)
+        assert v_J.shape == (self.batch_size,1,self.num_capsule,self.dim_vector,1)
 
         return v_J
        

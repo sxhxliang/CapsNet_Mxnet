@@ -89,21 +89,21 @@ def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batc
         for i, batch in enumerate(train_data):
             data, label = batch
             one_hot_label = nd.one_hot(label,10)
-            # print('data, label',data, label)
+
+            label = label.as_in_context(ctx)
+            one_hot_label = one_hot_label.as_in_context(ctx)
+            data = data.as_in_context(ctx)
+            
             with autograd.record():
                 output = net(data)
-                # print('output',output)
-
                 L = loss(output, one_hot_label)
 
             L.backward()
 
-            trainer.step(data.shape[0],ignore_stale_grad=True)
+            trainer.step(data.shape[0])
 
             train_loss += nd.mean(L).asscalar()
             # print('nd.mean(L).asscalar()',nd.mean(L).asscalar())
-
-            # print('output',output)
             
             train_acc += accuracy(output, label)
 
