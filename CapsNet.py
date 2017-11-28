@@ -21,8 +21,8 @@ def CapsNet(batch_size, ctx):
     net = nn.Sequential()
     with net.name_scope():
 
-        net.add(nn.Conv2D(channels=256, kernel_size=9, strides=1, padding=(0,0), activation='relu'))
-        net.add(PrimaryConv(dim_vector=8, n_channels=32, kernel_size=9, strides=2,padding=(0,0)))
+        net.add(nn.Conv2D(channels=256, kernel_size=9, strides=1, padding=(0,0), context=ctx, activation='relu'))
+        net.add(PrimaryConv(dim_vector=8, n_channels=32, kernel_size=9, strides=2, context=ctx, padding=(0,0)))
         net.add(DigitCaps(num_capsule=10, dim_vector=16))
         net.add(Length())
 
