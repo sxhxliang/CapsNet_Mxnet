@@ -11,7 +11,8 @@ import mxnet as mx
 from mxnet import init
 from mxnet import nd
 from mxnet.gluon import nn,Trainer
-from CapsLayers import DigitCaps, PrimaryConv, Length
+from CapsLayers import DigitCaps, PrimaryConv, Length, CapsuleMarginLoss
+from mxnet.gluon.loss import L2Loss
 import utils
 
 
@@ -43,8 +44,8 @@ if __name__ == "__main__":
     # setting the hyper parameters
     import argparse
     parser = argparse.ArgumentParser()
-    parser.add_argument('--batch_size', default=32, type=int)
-    parser.add_argument('--epochs', default=20, type=int)
+    parser.add_argument('--batch_size', default=16, type=int)
+    parser.add_argument('--epochs', default=1, type=int)
     parser.add_argument('--train', default=False, type=bool)
     args = parser.parse_args()
     print(args)
@@ -55,7 +56,8 @@ if __name__ == "__main__":
     train_data, test_data = utils.load_data_mnist(batch_size=args.batch_size,resize=28)
     
     net = CapsNet(batch_size=args.batch_size,ctx=ctx)
-    
+    margin_loss = CapsuleMarginLoss()
+
     print('====================================net====================================')
     print(net)
     
@@ -64,4 +66,4 @@ if __name__ == "__main__":
         
         trainer = Trainer(net.collect_params(),'adam', {'learning_rate': 0.01})
 
-        utils.train(train_data, test_data, net, loss, trainer, ctx, num_epochs=args.epochs)
+        utils.train(train_data, test_data, net, margin_loss, trainer, ctx, num_epochs=args.epochs)

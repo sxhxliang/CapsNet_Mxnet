@@ -77,11 +77,12 @@ def evaluate_accuracy(data_iterator, net, ctx=mx.cpu()):
     for i, batch in enumerate(data_iterator):
         data, label = _get_batch(batch, ctx)
         output = net(data)
+        print(output)
         acc += accuracy(output, label)
 
     return acc / (i+1)
 
-def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batches=None):
+def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batches=100):
     """Train a network"""
     for epoch in range(num_epochs):
         train_loss = 0.
@@ -111,6 +112,7 @@ def train(train_data, test_data, net, loss, trainer, ctx, num_epochs, print_batc
 
             n = i + 1
             if print_batches and n % print_batches == 0:
+                print('output',output)
                 print("Batch %d. Loss: %f, Train acc %f" % (
                     n, train_loss/n, train_acc/n
                 ))
